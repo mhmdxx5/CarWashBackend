@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const userRoutes = require("./Routes/userRoutes");
+const supportRoutes = require('./Routes/supportRoutes');
+
 
 
 // إنشاء التطبيق
@@ -18,6 +20,7 @@ app.use(cors()); // للسماح بالاتصال من الـ Frontend
 app.use("/api/users", userRoutes);// register user
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/products", productRoutes); // راوت إدارة الخدمات
+app.use('/api/support', supportRoutes);
 // إعداد قاعدة البيانات
 console.log(process.env.MONGO_URI)
 mongoose.connect(process.env.MONGO_URI, {
