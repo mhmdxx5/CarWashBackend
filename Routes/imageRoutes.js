@@ -1,59 +1,49 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
+const cloudinary = require('../utils/cloudinary');
 const Image = require('../Models/Image');
 const router = express.Router();
 
-// הגדרת Multer לשמירה על הדיסק
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // התיקייה שהכנת
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `img_${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-const upload = multer({ storage: storage });
-
-// API להעלאת תמונה
 router.post('/upload', upload.single('image'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'אין קובץ להעלות' });
-    }
+    const result = await cloudinary.uploader.upload_stream(
+      { resource_type: 'image' },
+      async (error, result) => {
+        if (error) {
+          console.error(error);
+          return res.status(500).json({ message: 'שגיאה בהעלאה ל־Cloudinary' });
+        }
 
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        // שמור את כתובת התמונה ב־MongoDB
+        const image = new Image({
+          url: result.secure_url, // URL מלא מהענן
+          public_id: result.public_id, // מזהה ב־Cloudinary אם תרצה למחוק בעתיד
+        });
 
-    const image = new Image({
-      url: imageUrl,
-    });
+        await image.save();
 
-    await image.save();
+        res.status(200).json({ message: 'תמונה הועלתה בהצלחה!', image });
+      }
+    );
 
-    // מחק תמונה ישנה אם יש יותר מ-3
-    const images = await Image.find().sort({ createdAt: -1 });
-    if (images.length > 3) {
-      const oldest = images[images.length - 1];
-      await Image.deleteOne({ _id: oldest._id });
-    }
-
-    res.status(200).json({ message: 'תמונה הועלתה בהצלחה!', image });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'שגיאה בהעלאת התמונה' });
+    result.end(req.file.buffer); // שגר את התמונה
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'שגיאה כללית בהעלאה' });
   }
 });
 
-// API לשליפת 3 התמונות האחרונות
+// שליפת 3 תמונות אחרונות
 router.get('/get-latest-images', async (req, res) => {
   try {
     const images = await Image.find().sort({ createdAt: -1 }).limit(3);
     res.json(images);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'שגיאה בטעינת התמונות' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'שגיאה בשליפת תמונות' });
   }
 });
 
