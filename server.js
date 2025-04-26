@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require('path');
+
 const userRoutes = require("./Routes/userRoutes");
 const supportRoutes = require('./Routes/supportRoutes');
 const imageRoutes = require('./Routes/imageRoutes'); // ייבוא ה-Route להעלאת תמונות
