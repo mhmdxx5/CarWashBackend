@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const userRoutes = require("./Routes/userRoutes");
 const supportRoutes = require('./Routes/supportRoutes');
+const imageRoutes = require('./Routes/imageRoutes'); // ייבוא ה-Route להעלאת תמונות
 
 
 
@@ -21,6 +22,8 @@ app.use("/api/users", userRoutes);// register user
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/products", productRoutes); // راوت إدارة الخدمات
 app.use('/api/support', supportRoutes);
+// הוספת ה-Route להעלאת תמונות
+app.use('/api/images', imageRoutes);
 // إعداد قاعدة البيانات
 console.log(process.env.MONGO_URI)
 mongoose.connect(process.env.MONGO_URI, {
