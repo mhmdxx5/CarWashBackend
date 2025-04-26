@@ -24,6 +24,8 @@ app.use("/api/products", productRoutes); // راوت إدارة الخدمات
 app.use('/api/support', supportRoutes);
 // הוספת ה-Route להעלאת תמונות
 app.use('/api/images', imageRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // إعداد قاعدة البيانات
 console.log(process.env.MONGO_URI)
 mongoose.connect(process.env.MONGO_URI, {

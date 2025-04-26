@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
 const imageSchema = new mongoose.Schema({
-  image: {
-    type: Buffer, // שמירה ב-Binary Data (Buffer)
+  url: {
+    type: String,
+    required: true,
   },
   createdAt: {
     type: Date,
