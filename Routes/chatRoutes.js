@@ -18,7 +18,12 @@ router.post('/start', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+// Routes/userRoutes.js
+router.get('/', auth, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
+    const users = await User.find({ role: 'user' }).select('_id name email');
+    res.json(users);
+  });
 // קבלת כל הצ'אטים (רק לאדמין)
 router.get('/rooms', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
