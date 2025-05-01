@@ -43,5 +43,13 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "حدث خطأ ما" });
   }
 });
+// Routes/userRoutes.js  – החזרה של כל ה-users למנהל
+router.get('/', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message:'Access denied' });
+  const roleFilter = req.query.role ? { role: req.query.role } : {};
+  const users = await User.find(roleFilter).select('_id name email');
+  res.json(users);
+});
+
 
 module.exports = router;
