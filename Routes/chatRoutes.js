@@ -59,32 +59,36 @@ router.get('/:roomId/messages', auth, async (req, res) => {
 });
 
 // שליחת הודעה בצ׳אט
+/* יצירת / שליחת הודעה */
 router.post('/:roomId/messages', auth, async (req, res) => {
   const { roomId } = req.params;
   const { content } = req.body;
-  try {
-    const isAdmin = req.user.role === 'admin';
-    const message = await Message.create({
-      chatRoom: roomId,
-      sender: req.user.id,
-      content,
-      isAdmin
-    });
 
-    await ChatRoom.findByIdAndUpdate(roomId, {
-      lastMessage: content,
-      $addToSet: isAdmin ? { admins: req.user.id } : {},
-    });
+  const isAdmin = req.user.role === 'admin';
+  const msg = await Message.create({
+    chatRoom: roomId,
+    sender  : req.user.id,
+    content,
+    isAdmin,
+    seen    : false,
+  });
 
-    // Socket.IO: שליחה בזמן אמת (אם יש req.io)
-    if (req.io) {
-      req.io.to(roomId).emit('receiveMessage', message);
-    }
+  // עדכן lastMessage בחדר
+  await ChatRoom.findByIdAndUpdate(roomId, { lastMessage: content, updatedAt: Date.now() });
 
-    res.json(message);
-  } catch (err) {
-    res.status(500).json({ message: 'Error sending message' });
-  }
+  // שדר ל-Socket.IO
+  req.io.to(roomId).emit('receiveMessage', msg);
+  res.json(msg);
+});
+/* סימון הודעות כ–seen כשנכנסים לחדר */
+router.post('/:roomId/seen', auth, async (req, res) => {
+  const { roomId } = req.params;
+  await Message.updateMany(
+    { chatRoom: roomId, sender: { $ne: req.user.id }, seen: false },
+    { $set: { seen: true } }
+  );
+  req.io.to(roomId).emit('seen', { by: req.user.id });
+  res.json({ ok: true });
 });
 
 module.exports = router;

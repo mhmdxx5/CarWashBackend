@@ -34,7 +34,9 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", ({ roomId, message }) => {
     socket.to(roomId).emit("receiveMessage", message);
   });
-
+  socket.on('typing', ({ roomId, isTyping }) => {
+    socket.to(roomId).emit('typing', { isTyping });
+  });
   socket.on("disconnect", () => {
     console.log("🔴 Client disconnected:", socket.id);
   });
