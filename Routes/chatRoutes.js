@@ -6,18 +6,24 @@ const User = require('../Models/User');
 const auth = require('../middleware/authMiddleware'); // לוודא שיש middleware שמוודא התחברות
 
 // יצירת צ'אט חדש או קיים ללקוח
-router.post('/start', auth, async (req, res) => {
-  const userId = req.user.id;
-  try {
-    let chat = await ChatRoom.findOne({ user: userId });
-    if (!chat) {
-      chat = await ChatRoom.create({ user: userId });
+// POST /api/chat/start (אם קיים targetUser → admin יוזם)
+router.post('/start', auth, async (req,res)=>{
+    const { targetUser } = req.body; // optional
+    const requester = req.user.id;
+  
+    if (targetUser) { // admin opens chat
+      if (req.user.role !== 'admin') return res.status(403).json({message:'Only admin'});
+      let room = await ChatRoom.findOne({ user: targetUser });
+      if (!room) room = await ChatRoom.create({ user: targetUser });
+      return res.json(room);
     }
-    res.json(chat);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+  
+    // regular user opens/gets his room
+    let room = await ChatRoom.findOne({ user: requester });
+    if (!room) room = await ChatRoom.create({ user: requester });
+    res.json(room);
+  });
+  
 // Routes/userRoutes.js
 router.get('/', auth, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
