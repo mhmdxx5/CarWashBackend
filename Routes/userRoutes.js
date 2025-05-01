@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../Models/User");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -44,7 +45,7 @@ router.post("/login", async (req, res) => {
   }
 });
 // Routes/userRoutes.js  – החזרה של כל ה-users למנהל
-router.get('/', auth, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message:'Access denied' });
   const roleFilter = req.query.role ? { role: req.query.role } : {};
   const users = await User.find(roleFilter).select('_id name email');

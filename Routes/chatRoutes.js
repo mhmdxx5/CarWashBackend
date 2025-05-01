@@ -7,22 +7,36 @@ const auth = require('../middleware/authMiddleware'); // לוודא שיש middl
 
 // יצירת צ'אט חדש או קיים ללקוח
 // POST /api/chat/start (אם קיים targetUser → admin יוזם)
-router.post('/start', auth, async (req,res)=>{
-    const { targetUser } = req.body; // optional
-    const requester = req.user.id;
-  
-    if (targetUser) { // admin opens chat
-      if (req.user.role !== 'admin') return res.status(403).json({message:'Only admin'});
-      let room = await ChatRoom.findOne({ user: targetUser });
-      if (!room) room = await ChatRoom.create({ user: targetUser });
-      return res.json(room);
-    }
-  
-    // regular user opens/gets his room
-    let room = await ChatRoom.findOne({ user: requester });
-    if (!room) room = await ChatRoom.create({ user: requester });
-    res.json(room);
-  });
+// POST /api/chat/start
+router.post('/start', auth, async (req, res) => {
+  const { targetUser } = req.body;        // optional
+  const requesterId   = req.user.id;      // ID של מי שקרא ל־API
+
+  /* ─────────── admin יוזם צ'אט עם משתמש ─────────── */
+  if (targetUser) {
+    if (req.user.role !== 'admin')
+      return res.status(403).json({ message: 'Only admin can open other chats' });
+
+    // חפש חדר קיים ל־user או צור חדש
+    let room = await ChatRoom.findOne({ user: targetUser });
+    if (!room) room = await ChatRoom.create({ user: targetUser });
+
+    // הוסף את האדמין לרשימת ה-admins (לשימוש עתידי לצביעה וכד׳)
+    await ChatRoom.updateOne(
+      { _id: room._id },
+      { $addToSet: { admins: requesterId } }
+    );
+
+    return res.json(room);
+  }
+
+  /* ─────────── משתמש רגיל (או admin שרוצה את שלו) ─────────── */
+  let room = await ChatRoom.findOne({ user: requesterId });
+  if (!room) room = await ChatRoom.create({ user: requesterId });
+
+  res.json(room);
+});
+
   
 // Routes/userRoutes.js
 router.get('/', auth, async (req, res) => {
