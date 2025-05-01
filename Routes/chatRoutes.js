@@ -12,9 +12,9 @@ const auth     = require('../middleware/authMiddleware');
 /* ----- Cloudinary ----- */
 const cloudinary = require('cloudinary').v2;          //  npm i cloudinary
 cloudinary.config({
-  cloud_name: dt3mmadat,
+  cloud_name: 'dt3mmadat',
   api_key   : 363231651115672,
-  api_secret: zBmDmxEplFzt6RLvwoY8kVE3BiQ,
+  api_secret: 'zBmDmxEplFzt6RLvwoY8kVE3BiQ',
 });
 /* Multer – קובץ זמני בזיכרון (buffer) */
 const storage = multer.memoryStorage();
