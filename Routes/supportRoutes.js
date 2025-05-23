@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const SupportRequest = require('../Models/Support');
 const authMiddleware = require("../middleware/authMiddleware");
-const adminMiddleware = require("../middleware/adminMiddleware");
+const AdminMiddleware = require("../middleware/AdminMiddleware");
 // משתמש שולח בקשת תמיכה
 router.post('/', authMiddleware, async (req, res) => {
   const { message } = req.body;
@@ -20,7 +20,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // מנהל רואה את כל הבקשות
-router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
+router.get('/', authMiddleware, AdminMiddleware, async (req, res) => {
   try {
     const supportRequests = await SupportRequest.find()
       .populate('user', 'name email')
@@ -32,7 +32,7 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // מנהל משנה סטטוס
-router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, AdminMiddleware, async (req, res) => {
   const { status } = req.body;
   try {
     const request = await SupportRequest.findById(req.params.id);

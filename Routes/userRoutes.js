@@ -46,11 +46,27 @@ router.post("/login", async (req, res) => {
 });
 // Routes/userRoutes.js  – החזרה של כל ה-users למנהל
 router.get('/', authMiddleware, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message:'Access denied' });
+  if (req.user.role !== 'Admin') return res.status(403).json({ message:'Access denied' });
   const roleFilter = req.query.role ? { role: req.query.role } : {};
   const users = await User.find(roleFilter).select('_id name email');
   res.json(users);
 });
 
+// حذف مستخدم
+router.delete('/:id', authMiddleware, async (req, res) => {
+  const userId = req.params.id;
+  const requestingUser = req.user;
+
+  if (requestingUser.id !== userId && requestingUser.role !== 'Admin') {
+    return res.status(403).json({ message: 'ليس لديك صلاحية حذف هذا المستخدم' });
+  }
+
+  try {
+    await User.findByIdAndDelete(userId);
+    res.json({ message: 'تم حذف المستخدم بنجاح' });
+  } catch (err) {
+    res.status(500).json({ message: 'حدث خطأ أثناء الحذف' });
+  }
+});
 
 module.exports = router;

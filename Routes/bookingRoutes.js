@@ -4,7 +4,7 @@ const moment            = require('moment');
 
 const Booking           = require('../Models/Booking');
 const authMiddleware    = require('../middleware/authMiddleware');
-const adminMiddleware   = require('../middleware/adminMiddleware');
+const AdminMiddleware   = require('../middleware/AdminMiddleware');
 const sendEmail         = require('../utils/sendEmail');
 
 const router = express.Router();
@@ -73,9 +73,9 @@ router.post(
         );
       }
 
-      if (process.env.ADMIN_EMAIL) {
+      if (process.env.Admin_EMAIL) {
         await sendEmail(
-          process.env.ADMIN_EMAIL,
+          process.env.Admin_EMAIL,
           '🚘 تم استلام حجز جديد',
           `<p>مستخدم: <strong>${req.user.name}</strong></p>
            <p>📍 ${location}</p>
@@ -134,7 +134,7 @@ router.get('/my', authMiddleware, async (req, res) => {
 });
 
 /* ─────────────  כל ההזמנות (אדמין)  ───────────── */
-router.get('/', authMiddleware, adminMiddleware, async (_req, res) => {
+router.get('/', authMiddleware, AdminMiddleware, async (_req, res) => {
   try {
     const list = await Booking.find()
       .populate('user', 'name email')
@@ -147,7 +147,7 @@ router.get('/', authMiddleware, adminMiddleware, async (_req, res) => {
 });
 
 /* ─────────────  עדכון סטטוס  ───────────── */
-router.put('/:id/status', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/:id/status', authMiddleware, AdminMiddleware, async (req, res) => {
   const { status } = req.body;
   const ALLOWED = ['pending', 'completed', 'canceled'];
   if (!ALLOWED.includes(status))
@@ -179,7 +179,7 @@ router.post('/send-cancel-request', authMiddleware, async (req, res) => {
     if (!booking) return res.status(404).json({ message: 'ההזמנה לא נמצאה' });
 
     await sendEmail(
-      process.env.ADMIN_EMAIL || 'admin@example.com',
+      process.env.Admin_EMAIL || 'Admin@example.com',
       '📩 בקשה לביטול הזמנה',
       `<p>משתמש: ${booking.user.name}</p>
        <p>הזמנה: ${booking._id}</p>`

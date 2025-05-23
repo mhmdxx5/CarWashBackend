@@ -25,13 +25,13 @@ router.post('/start', auth, async (req,res)=>{
   const { targetUser } = req.body;
   const requesterId = req.user.id;
 
-  if (targetUser) {                                   // admin → user
-    if (req.user.role !== 'admin')
-      return res.status(403).json({ message:'Only admin' });
+  if (targetUser) {                                   // Admin → user
+    if (req.user.role !== 'Admin')
+      return res.status(403).json({ message:'Only Admin' });
 
     let room = await ChatRoom.findOne({ user: targetUser });
     if (!room) room = await ChatRoom.create({ user: targetUser });
-    await ChatRoom.updateOne({ _id: room._id },{ $addToSet:{ admins: requesterId }});
+    await ChatRoom.updateOne({ _id: room._id },{ $addToSet:{ Admins: requesterId }});
     return res.json(room);
   }
 
@@ -40,16 +40,16 @@ router.post('/start', auth, async (req,res)=>{
   res.json(room);
 });
 
-/* ───────── 2. users list (admin only) ───────── */
+/* ───────── 2. users list (Admin only) ───────── */
 router.get('/', auth, async (req,res)=>{
-  if (req.user.role!=='admin') return res.status(403).json({message:'Access denied'});
+  if (req.user.role!=='Admin') return res.status(403).json({message:'Access denied'});
   const users = await User.find({ role:'user' }).select('_id name email');
   res.json(users);
 });
 
-/* ───────── 3. rooms list (admin) ───────── */
+/* ───────── 3. rooms list (Admin) ───────── */
 router.get('/rooms', auth, async (req,res)=>{
-  if (req.user.role!=='admin') return res.status(403).json({message:'Access denied'});
+  if (req.user.role!=='Admin') return res.status(403).json({message:'Access denied'});
   const rooms = await ChatRoom.find().populate('user').sort({ updatedAt:-1 });
   res.json(rooms);
 });
@@ -63,7 +63,7 @@ router.get('/:roomId/messages', auth, async (req,res)=>{
 /* ───────── 5. send TEXT message ───────── */
 router.post('/:roomId/messages', auth, async (req,res)=>{
   const { content } = req.body;
-  const isAdmin = req.user.role==='admin';
+  const isAdmin = req.user.role==='Admin';
 
   const msg = await Message.create({
     chatRoom : req.params.roomId,
@@ -98,7 +98,7 @@ router.post('/:roomId/upload', auth, upload.single('file'), async (req,res)=>{
           sender   : req.user.id,
           msgType  : 'image',
           imageUrl : result.secure_url,            // URL מלא ב-Cloudinary
-          isAdmin  : req.user.role==='admin',
+          isAdmin  : req.user.role==='Admin',
           seen     : false,
         });
 

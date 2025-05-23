@@ -1,12 +1,12 @@
 const express = require("express");
 const Product = require("../Models/Product");
 const authMiddleware = require("../middleware/authMiddleware");
-const adminMiddleware = require("../middleware/adminMiddleware");
+const AdminMiddleware = require("../middleware/AdminMiddleware");
 
 const router = express.Router();
 
 // 📌 إضافة خدمة جديدة (فقط للمشرف)
-router.post("/", authMiddleware, adminMiddleware, async (req, res) => {
+router.post("/", authMiddleware, AdminMiddleware, async (req, res) => {
   const { name, description, price, duration, type } = req.body;
 
   try {
@@ -29,7 +29,7 @@ router.get("/", async (req, res) => {
 });
 
 // 📌 حذف خدمة (فقط للمشرف)
-router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
+router.delete("/:id", authMiddleware, AdminMiddleware, async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: "🗑️ تم حذف الخدمة بنجاح" });
@@ -39,7 +39,7 @@ router.delete("/:id", authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // 📌 עדכון שירות קיים (PUT) – רק למנהל
-router.put("/:id", authMiddleware, adminMiddleware, async (req, res) => {
+router.put("/:id", authMiddleware, AdminMiddleware, async (req, res) => {
   try {
     const updated = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ message: "✅ השירות עודכן בהצלחה", product: updated });
