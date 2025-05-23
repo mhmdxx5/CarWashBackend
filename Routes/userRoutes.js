@@ -58,9 +58,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   const userId = req.params.id;
   const requestingUser = req.user;
 
-  if (requestingUser.id !== userId && requestingUser.role !== 'Admin') {
-    return res.status(403).json({ message: 'ليس لديك صلاحية حذف هذا المستخدم' });
-  }
+ 
 
   try {
     await User.findByIdAndDelete(userId);
