@@ -5,6 +5,8 @@ const cors = require("cors");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
+const authRoutes = require('./routes/auth');
+
 
 const userRoutes = require("./Routes/userRoutes");
 const supportRoutes = require("./Routes/supportRoutes");
@@ -56,6 +58,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/images", imageRoutes);
 app.use("/api/chat", chatRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection
