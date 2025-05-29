@@ -5,7 +5,7 @@ const cors = require("cors");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
-const authRoutes = require('./routes/auth');
+const authRoutes = require("./Routes/authPhone");
 
 
 const userRoutes = require("./Routes/userRoutes");
