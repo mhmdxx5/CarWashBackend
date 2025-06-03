@@ -26,7 +26,7 @@ router.post('/start', auth, async (req,res)=>{
   const requesterId = req.user.id;
 
   if (targetUser) {                                   // Admin → user
-    if (req.user.role !== 'Admin')
+    if ('Admin' !== 'Admin')
       return res.status(403).json({ message:'Only Admin' });
 
     let room = await ChatRoom.findOne({ user: targetUser });
