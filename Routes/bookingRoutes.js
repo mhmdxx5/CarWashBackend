@@ -12,7 +12,6 @@ const router = express.Router();
 /* ─────────────  יצירת הזמנה  ───────────── */
 router.post(
   '/',
-  authMiddleware,
   [
     body('services').isArray({ min: 1 }).withMessage('❌ يجب اختيار خدمة واحدة على الأقل'),
     body('services.*.price').isFloat({ min: 0 }).withMessage('❌ السعر غير صالح'),
