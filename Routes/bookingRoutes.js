@@ -24,18 +24,16 @@ router.post(
     body('water').optional().isBoolean(),         // ← חדש
   ],
   async (req, res) => {
-    /* ולידציה */
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const {
       services, location, coordinates,
       date, carNumber, phone, notes,
-      electricity = false, water = false,       // ← דגלים ברירת-מחדל
+      electricity = false, water = false,
     } = req.body;
 
     try {
-      /* הגבלת 3 הזמנות לשעה */
       const hourStart = moment(date).startOf('hour').toDate();
       const hourEnd   = moment(date).endOf('hour').toDate();
       const existing  = await Booking.find({ date: { $gte: hourStart, $lte: hourEnd } });
@@ -43,10 +41,8 @@ router.post(
       if (existing.length >= 3)
         return res.status(400).json({ message: '❌ يوجد 3 حجوزات بالفعل في هذه الساعة' });
 
-      /* חישוב סה״כ */
       const totalPrice = services.reduce((sum, s) => sum + Number(s.price || 0), 0);
 
-      /* יצירה ושמירת electricity/water */
       const booking = await Booking.create({
         user: req.user.id,
         services,
@@ -61,7 +57,6 @@ router.post(
         water,
       });
 
-      /* שליחת מיילים (השארתי כמו אצלך, אפשר לשנות כרצונך) */
       if (req.user?.email) {
         await sendEmail(
           req.user.email,
@@ -94,11 +89,16 @@ router.post(
   }
 );
 
-/* ─────────────  זמינות שעות ליום  ───────────── */
+/* ─────────────  זמינות שעות ליום (חמישי־שישי־שבת בלבד)  ───────────── */
 router.get('/availability', async (req, res) => {
   const { date } = req.query;
   if (!date || !moment(date, 'YYYY-MM-DD', true).isValid())
     return res.status(400).json({ message: '❌ التاريخ غير صالح' });
+
+  const dayOfWeek = moment(date).day(); // 0 = Sunday, ..., 6 = Saturday
+  if (![4, 5, 6].includes(dayOfWeek)) {
+    return res.status(400).json({ message: '❌ التوفر فقط أيام الخميس والجمعة والسبت' });
+  }
 
   const workingHours = [
     '08:00','09:00','10:00','11:00',
@@ -126,7 +126,7 @@ router.get('/availability', async (req, res) => {
 router.get('/my', authMiddleware, async (req, res) => {
   try {
     const list = await Booking.find({ user: req.user.id }).sort({ createdAt: -1 });
-    res.json(list);              // ← כולל electricity & water
+    res.json(list);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: '❌ حدث خطأ أثناء جلب الحجوزات' });
@@ -139,7 +139,7 @@ router.get('/', authMiddleware, AdminMiddleware, async (_req, res) => {
     const list = await Booking.find()
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
-    res.json(list);              // ← כולל electricity & water
+    res.json(list);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: '❌ حدث خطأ أثناء جلب الحجوزات' });
@@ -161,7 +161,6 @@ router.put('/:id/status', authMiddleware, AdminMiddleware, async (req, res) => {
     booking.status = status;
     await booking.save();
 
-    /* אפשר לשלוח מייל למשתמש כאן... */
     res.json({ message: '✅ تم تحديث حالة الحجز', booking });
   } catch (err) {
     console.error(err);
@@ -179,7 +178,7 @@ router.post('/send-cancel-request', authMiddleware, async (req, res) => {
     if (!booking) return res.status(404).json({ message: 'ההזמנה לא נמצאה' });
 
     await sendEmail(
-      process.env.Admin_EMAIL || 'Admin@example.com',
+      process.env.Admin_EMAIL || 'mhmdatamny8@gmail.com',
       '📩 בקשה לביטול הזמנה',
       `<p>משתמש: ${booking.user.name}</p>
        <p>הזמנה: ${booking._id}</p>`
