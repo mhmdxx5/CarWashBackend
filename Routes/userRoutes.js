@@ -44,11 +44,12 @@ router.post("/login", async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "كلمة المرور غير صحيحة" });
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "180d" }
-    );
+const token = jwt.sign(
+  { id: user._id, role: user.role, tokenVersion: user.tokenVersion },
+  process.env.JWT_SECRET,
+  { expiresIn: "360d" }
+);
+
 
     res.json({
       token,
@@ -85,5 +86,18 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "حدث خطأ أثناء الحذف" });
   }
 });
+// בתוך routes/userRoutes.js
+router.post("/invalidateTokens", authMiddleware, async (req, res) => {
+  if (req.user.role !== "admin")
+    return res.status(403).json({ message: "غير مصرح للمستخدم" });
+
+  try {
+    await User.updateMany({}, { $inc: { tokenVersion: 1 } });
+    res.json({ message: "تم تسجيل الخروج لجميع المستخدمين." });
+  } catch (err) {
+    res.status(500).json({ message: "فشل في تحديث الرموز" });
+  }
+});
+
 
 module.exports = router;
