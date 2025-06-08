@@ -14,6 +14,8 @@ const imageRoutes = require("./Routes/imageRoutes");
 const bookingRoutes = require("./Routes/bookingRoutes");
 const productRoutes = require("./Routes/productRoutes");
 const chatRoutes = require("./Routes/chatRoutes");
+const workingHoursRoutes = require('./Routes/workingHoursRoutes');
+
 
 const app = express();
 const server = http.createServer(app);
@@ -59,6 +61,7 @@ app.use("/api/support", supportRoutes);
 app.use("/api/images", imageRoutes);
 app.use("/api/chat", chatRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/working-hours', workingHoursRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database connection

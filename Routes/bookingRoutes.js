@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const moment            = require('moment');
 
 const Booking           = require('../Models/Booking');
+const WorkingHours      = require('../Models/WorkingHours'); // ← חדש
 const authMiddleware    = require('../middleware/authMiddleware');
 const AdminMiddleware   = require('../middleware/AdminMiddleware');
 const sendEmail         = require('../utils/sendEmail');
@@ -89,32 +90,27 @@ router.post(
   }
 );
 
-/* ─────────────  זמינות שעות ליום (חמישי־שישי־שבת בלבד)  ───────────── */
+/* ─────────────  זמינות שעות ליום (דינמי לפי DB)  ───────────── */
 router.get('/availability', async (req, res) => {
   const { date } = req.query;
   if (!date || !moment(date, 'YYYY-MM-DD', true).isValid())
     return res.status(400).json({ message: '❌ التاريخ غير صالح' });
 
-  const dayOfWeek = moment(date).day(); // 0 = Sunday, ..., 6 = Saturday
-  const workingHours = [
-    '08:00','09:00','10:00','11:00',
-    '12:00','13:00','14:00','15:00',
-    '16:00','17:00','18:00',
-  ];
-
-  if (![4, 5, 6].includes(dayOfWeek)) {
-    // Return empty array on other days instead of error
-    return res.json({ date, availableHours: [] });
-  }
+  const dayName = moment(date).format('dddd'); // 'Thursday', 'Friday' וכו'
 
   try {
+    const workingDay = await WorkingHours.findOne({ day: dayName });
+    if (!workingDay || !workingDay.hours.length) {
+      return res.json({ date, availableHours: [] });
+    }
+
     const dayStart = moment(date).startOf('day').toDate();
     const dayEnd   = moment(date).endOf('day').toDate();
     const bookings = await Booking.find({ date: { $gte: dayStart, $lte: dayEnd } })
                                   .select('date');
 
     const booked = bookings.map(b => moment(b.date).format('HH:mm'));
-    const availableHours = workingHours.filter(h => !booked.includes(h));
+    const availableHours = workingDay.hours.filter(h => !booked.includes(h));
 
     res.json({ date, availableHours });
   } catch (err) {
