@@ -15,7 +15,7 @@ const bookingRoutes = require("./Routes/bookingRoutes");
 const productRoutes = require("./Routes/productRoutes");
 const chatRoutes = require("./Routes/chatRoutes");
 const workingHoursRoutes = require('./Routes/workingHoursRoutes');
-
+const workingHoursByDateRoutes = require('./Routes/workingHoursByDateRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -63,6 +63,8 @@ app.use("/api/chat", chatRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/working-hours', workingHoursRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.use('/api/working-hours', workingHoursByDateRoutes); // 🔹 אותו prefix
 
 // Database connection
 console.log(process.env.MONGO_URI);
