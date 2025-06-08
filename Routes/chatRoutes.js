@@ -83,7 +83,7 @@ router.post('/:roomId/messages', auth, async (req,res)=>{
   // ✉️ Email Notification Logic
   try {
     const room = await ChatRoom.findById(req.params.roomId).populate('user');
-    const recipient = isAdmin ? room.user : (await User.findOne({ role: 'Admin' }));
+    const recipient = isAdmin ? room.user : (await User.findOne({ role: 'admin' }));
     if (recipient && recipient.email) {
       await sendEmail(
         recipient.email,
@@ -126,7 +126,7 @@ router.post('/:roomId/upload', auth, upload.single('file'), async (req,res)=>{
         // ✉️ Email Notification Logic for image
         try {
           const room = await ChatRoom.findById(req.params.roomId).populate('user');
-          const recipient = msg.isAdmin ? room.user : (await User.findOne({ role: 'Admin' }));
+          const recipient = msg.isAdmin ? room.user : (await User.findOne({ role: 'admin' }));
           if (recipient && recipient.email) {
             await sendEmail(
               recipient.email,
