@@ -1,46 +1,48 @@
 const mongoose = require('mongoose');
 
-const bookingSchema = new mongoose.Schema(
-  {
-    user:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const bookingSchema = new mongoose.Schema({
+  user       : { type: mongoose.Schema.Types.ObjectId, ref: 'User', required:true },
 
-    /* שירותים */
-    services: [
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
-        name:      { type: String,  required: true },
-        price:     { type: Number,  required: true },
-      },
-    ],
+  /* שירותים */
+  services:[{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref:'Product' },
+    name     : { type:String,  required:true },
+    price    : { type:Number,  required:true },
+  }],
 
-    totalPrice: { type: Number, required: true },
+  /* תוספת אופציונלית לשטיפה בבית */
+  homeExtraPrice: { type:Number, default:0 },   // ‎₪20 אם “غسيل في المنزل”
 
-    /* מיקום */
-    location:   { type: String,  required: true },
-    coordinates:{
-      lat: { type: Number },
-      lng: { type: Number },
-    },
+  totalPrice: { type:Number, required:true },
 
-    /* חשמל / מים */
-    electricity: { type: Boolean, default: false },  // ✅ נקודת חשמל
-    water:       { type: Boolean, default: false },  // ✅ נקודת מים
+  /* מיקום */
+  location   : { type:String,  required:true },
+  coordinates:{ lat:Number, lng:Number },
 
-    /* תאריך-שעה */
-    date:        { type: Date,   required: true },
+  /* חשמל / מים (רק בשטיפה בבית) */
+  electricity: { type:Boolean, default:false },
+  water      : { type:Boolean, default:false },
 
-    /* פרטים נוספים */
-    carNumber:   { type: String, required: true },
-    phone:       { type: String, required: true },
-    notes:       { type: String },
+  /* תאריך-שעה */
+  date       : { type:Date,    required:true },
 
-    status: {
-      type: String,
-      enum: ['pending', 'completed', 'canceled'],
-      default: 'pending',
-    },
+  /* מידע נוסף */
+  carNumber  : { type:String, required:true },  // לוחית רישוי
+  carCode    : { type:String },                 // 🔑 קוד-מפתח (חדש)
+  notes      : { type:String },                 // הערות כתובת / כללי
+
+  /* סוג השירות */
+  serviceMode:{
+    type   : String,
+    enum   : ['home', 'pickup'],                // home=“غسيل في المنزل”, pickup=“مندوب…”
+    default: 'home',
   },
-  { timestamps: true }
-);
+
+  status:{
+    type   : String,
+    enum   : ['pending','completed','canceled'],
+    default: 'pending',
+  },
+},{ timestamps:true });
 
 module.exports = mongoose.model('Booking', bookingSchema);
