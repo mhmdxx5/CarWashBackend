@@ -20,8 +20,8 @@ router.post(
     body('date').isISO8601().withMessage('❌ التاريخ غير صالح'),
     body('carNumber').notEmpty().withMessage('❌ رقم السيارة مطلوب'),
     body('phone').notEmpty().withMessage('❌ رقم الهاتف مطلوب'),
-    body('electricity').optional().isBoolean(),   // ← חדש
-    body('water').optional().isBoolean(),         // ← חדש
+    body('electricity').optional().isBoolean(),
+    body('water').optional().isBoolean(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -96,15 +96,16 @@ router.get('/availability', async (req, res) => {
     return res.status(400).json({ message: '❌ التاريخ غير صالح' });
 
   const dayOfWeek = moment(date).day(); // 0 = Sunday, ..., 6 = Saturday
-  if (![4, 5, 6].includes(dayOfWeek)) {
-    return res.status(400).json({ message: '❌ التوفر فقط أيام الخميس والجمعة والسبت' });
-  }
-
   const workingHours = [
     '08:00','09:00','10:00','11:00',
     '12:00','13:00','14:00','15:00',
     '16:00','17:00','18:00',
   ];
+
+  if (![4, 5, 6].includes(dayOfWeek)) {
+    // Return empty array on other days instead of error
+    return res.json({ date, availableHours: [] });
+  }
 
   try {
     const dayStart = moment(date).startOf('day').toDate();
@@ -178,7 +179,7 @@ router.post('/send-cancel-request', authMiddleware, async (req, res) => {
     if (!booking) return res.status(404).json({ message: 'ההזמנה לא נמצאה' });
 
     await sendEmail(
-      process.env.Admin_EMAIL || 'mhmdatamny8@gmail.com',
+      process.env.Admin_EMAIL || 'Admin@example.com',
       '📩 בקשה לביטול הזמנה',
       `<p>משתמש: ${booking.user.name}</p>
        <p>הזמנה: ${booking._id}</p>`
