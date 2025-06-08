@@ -3,7 +3,8 @@ const { body, validationResult } = require('express-validator');
 const moment            = require('moment');
 
 const Booking           = require('../Models/Booking');
-const WorkingHours      = require('../Models/WorkingHours'); // ← חדש
+const WorkingHours      = require('../Models/WorkingHours');        // תבנית שבועית
+const WorkingHoursByDate= require('../Models/WorkingHoursByDate');  // חריגים לפי תאריך
 const authMiddleware    = require('../middleware/authMiddleware');
 const AdminMiddleware   = require('../middleware/AdminMiddleware');
 const sendEmail         = require('../utils/sendEmail');
@@ -35,6 +36,7 @@ router.post(
     } = req.body;
 
     try {
+      /* הגבלה: עד 3 הזמנות בשעה */
       const hourStart = moment(date).startOf('hour').toDate();
       const hourEnd   = moment(date).endOf('hour').toDate();
       const existing  = await Booking.find({ date: { $gte: hourStart, $lte: hourEnd } });
@@ -42,6 +44,7 @@ router.post(
       if (existing.length >= 3)
         return res.status(400).json({ message: '❌ يوجد 3 حجوزات بالفعل في هذه الساعة' });
 
+      /* חישוב מחיר כולל */
       const totalPrice = services.reduce((sum, s) => sum + Number(s.price || 0), 0);
 
       const booking = await Booking.create({
@@ -58,6 +61,7 @@ router.post(
         water,
       });
 
+      /* אימיילים */
       if (req.user?.email) {
         await sendEmail(
           req.user.email,
@@ -90,29 +94,41 @@ router.post(
   }
 );
 
-/* ─────────────  זמינות שעות ליום (דינמי לפי DB)  ───────────── */
+/* ─────────────  זמינות שעות ליום (Override לפי תאריך ⇢ ברירת-מחדל שבועית)  ───────────── */
 router.get('/availability', async (req, res) => {
   const { date } = req.query;
   if (!date || !moment(date, 'YYYY-MM-DD', true).isValid())
     return res.status(400).json({ message: '❌ التاريخ غير صالح' });
 
-  const dayName = moment(date).format('dddd'); // 'Thursday', 'Friday' וכו'
+  const dateStr = moment(date).format('YYYY-MM-DD');
+  const dayName = moment(date).format('dddd');       // Sunday…Saturday
 
   try {
-    const workingDay = await WorkingHours.findOne({ day: dayName });
-    if (!workingDay || !workingDay.hours.length) {
-      return res.json({ date, availableHours: [] });
+    /* ① חפש חריג ספציפי לתאריך */
+    const overrideDoc = await WorkingHoursByDate.findOne({ date: dateStr });
+
+    /* ② אם אין חריג – קח את ברירת-המחדל של יום-בשבוע */
+    let workingHours = [];
+    if (overrideDoc && overrideDoc.hours.length) {
+      workingHours = overrideDoc.hours;
+    } else {
+      const weekly = await WorkingHours.findOne({ day: dayName });
+      workingHours = weekly ? weekly.hours : [];
     }
 
+    if (!workingHours.length)
+      return res.json({ date: dateStr, availableHours: [] });
+
+    /* ③ מחסיר שעות שכבר תפוסות */
     const dayStart = moment(date).startOf('day').toDate();
     const dayEnd   = moment(date).endOf('day').toDate();
     const bookings = await Booking.find({ date: { $gte: dayStart, $lte: dayEnd } })
                                   .select('date');
 
     const booked = bookings.map(b => moment(b.date).format('HH:mm'));
-    const availableHours = workingDay.hours.filter(h => !booked.includes(h));
+    const availableHours = workingHours.filter(h => !booked.includes(h));
 
-    res.json({ date, availableHours });
+    res.json({ date: dateStr, availableHours });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: '❌ حدث خطأ أثناء جلب التوفر' });
@@ -130,7 +146,7 @@ router.get('/my', authMiddleware, async (req, res) => {
   }
 });
 
-/* ─────────────  כל ההזמנות (אדמין)  ───────────── */
+/* ─────────────  כל ההזמנות (Admin)  ───────────── */
 router.get('/', authMiddleware, AdminMiddleware, async (_req, res) => {
   try {
     const list = await Booking.find()
@@ -139,7 +155,7 @@ router.get('/', authMiddleware, AdminMiddleware, async (_req, res) => {
     res.json(list);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: '❌ حدث خطأ أثناء جلب الحجوزات' });
+    res.status(500).json({ message: '❌ حدث خطأ أثناء جلب الحجوزות' });
   }
 });
 
