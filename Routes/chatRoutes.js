@@ -66,6 +66,7 @@ router.get('/:roomId/messages', auth, async (req,res)=>{
 router.post('/:roomId/messages', auth, async (req, res) => {
   const { content } = req.body;
   const isAdmin = req.user.role === 'admin';
+  
 
   const msg = await Message.create({
     chatRoom: req.params.roomId,
@@ -84,22 +85,26 @@ router.post('/:roomId/messages', auth, async (req, res) => {
   req.io.to(req.params.roomId).emit('receiveMessage', msg);
 
   // ✉️ Email Notification Logic (send to the other side only)
-  try {
-    const room = await ChatRoom.findById(req.params.roomId).populate('user');
-    const recipient = isAdmin
-      ? room.user // אם אדמין שלח → שולח למשתמש
-      : await User.findOne({ role: 'admin' }); // אם יוזר שלח → שולח לאדמין
+ // ✉️ Email Notification Logic
+try {
+  const room = await ChatRoom.findById(req.params.roomId).populate('user');
+  const senderName = req.user.name || 'משתמש לא ידוע';
 
-    if (recipient && recipient.email && recipient._id.toString() !== req.user.id) {
-      await sendEmail(
-        recipient.email,
-        '💬 הודעה חדשה מ-Washi Chat',
-        `<p>התקבלה הודעה חדשה:</p><blockquote>${content}</blockquote><p>פתח את הצ'אט כדי להשיב.</p>`
-      );
-    }
-  } catch (err) {
-    console.error('שגיאה בשליחת מייל:', err);
+  const recipient = isAdmin
+    ? room.user // המשתמש
+    : await User.findOne({ role: 'admin' }); // האדמין
+
+  if (recipient && recipient.email) {
+    await sendEmail(
+      recipient.email,
+      '💬 הודעה חדשה מ-Washi Chat',
+      `<p><strong>${senderName}</strong> שלח הודעה חדשה:</p><blockquote>${content}</blockquote><p>פתח את הצ'אט כדי להשיב.</p>`
+    );
   }
+} catch (err) {
+  console.error('שגיאה בשליחת מייל:', err);
+}
+
 
   res.json(msg);
 });
