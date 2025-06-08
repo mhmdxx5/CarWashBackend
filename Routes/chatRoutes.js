@@ -8,6 +8,7 @@ const ChatRoom = require('../Models/ChatRoom');
 const Message  = require('../Models/Message');
 const User     = require('../Models/User');
 const auth     = require('../middleware/authMiddleware');
+const sendEmail = require('../utils/sendEmail');
 
 /* ----- Cloudinary ----- */
 const cloudinary = require('cloudinary').v2;          //  npm i cloudinary
@@ -78,6 +79,22 @@ router.post('/:roomId/messages', auth, async (req,res)=>{
     { lastMessage: content, updatedAt: Date.now() });
 
   req.io.to(req.params.roomId).emit('receiveMessage', msg);
+
+  // ✉️ Email Notification Logic
+  try {
+    const room = await ChatRoom.findById(req.params.roomId).populate('user');
+    const recipient = isAdmin ? room.user : (await User.findOne({ role: 'Admin' }));
+    if (recipient && recipient.email) {
+      await sendEmail(
+        recipient.email,
+        '💬 הודעה חדשה מ-Washi Chat',
+        `<p>התקבלה הודעה חדשה:</p><blockquote>${content}</blockquote><p>פתח את הצ'אט כדי להשיב.</p>`
+      );
+    }
+  } catch (err) {
+    console.error('שגיאה בשליחת מייל:', err);
+  }
+
   res.json(msg);
 });
 
@@ -85,7 +102,6 @@ router.post('/:roomId/messages', auth, async (req,res)=>{
 router.post('/:roomId/upload', auth, upload.single('file'), async (req,res)=>{
   if (!req.file) return res.status(400).json({ message:'No file' });
 
-  /* העלאה ל-Cloudinary */
   try {
     const cldRes = await cloudinary.uploader.upload_stream(
       { folder: 'chatImages', resource_type: 'image' },
@@ -97,7 +113,7 @@ router.post('/:roomId/upload', auth, upload.single('file'), async (req,res)=>{
           chatRoom : req.params.roomId,
           sender   : req.user.id,
           msgType  : 'image',
-          imageUrl : result.secure_url,            // URL מלא ב-Cloudinary
+          imageUrl : result.secure_url,
           isAdmin  : req.user.role==='Admin',
           seen     : false,
         });
@@ -106,10 +122,26 @@ router.post('/:roomId/upload', auth, upload.single('file'), async (req,res)=>{
           { lastMessage:'📷 Image', updatedAt:Date.now() });
 
         req.io.to(req.params.roomId).emit('receiveMessage', msg);
+
+        // ✉️ Email Notification Logic for image
+        try {
+          const room = await ChatRoom.findById(req.params.roomId).populate('user');
+          const recipient = msg.isAdmin ? room.user : (await User.findOne({ role: 'Admin' }));
+          if (recipient && recipient.email) {
+            await sendEmail(
+              recipient.email,
+              '📷 תמונה חדשה בצ׳אט Washi',
+              `<p>התקבלה תמונה חדשה בצ׳אט. פתח את האפליקציה לצפייה.</p>`
+            );
+          }
+        } catch (err) {
+          console.error('שגיאה בשליחת מייל לתמונה:', err);
+        }
+
         res.json(msg);
       }
     );
-    cldRes.end(req.file.buffer);                   // מזין את ה-buffer ל-stream
+    cldRes.end(req.file.buffer);
   } catch(err){
     console.error(err);
     res.status(500).json({ message:'Upload failed' });
